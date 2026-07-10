@@ -4,7 +4,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "27.1") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -31,12 +31,9 @@
 
 (require 'csound-score)
 (require 'csound-util)
-(require 'multi)
-(require 'shut-up)
 
 ;; (defun csound-repl-interaction--plot (table-num)
-;;   (if (not (eq 0 (shut-up
-;; 		   (shell-command "gnuplot --version"))))
+;;   (if (not (eq 0 (call-process "gnuplot" nil nil nil "--version")))
 ;;       (error "gnuplot was not found")
 ;;     (let ((prev-buffer (buffer-name))
 ;; 	  (tmp-filename (concat "/tmp/" (csound-util--generate-random-uuid) ".png"))
@@ -84,24 +81,13 @@
     (funcall callback)
     (setq csound-repl-interaction--last-callback callback)))
 
-(defmulti read-csound-repl (op _ &rest _)
-  op)
-
-(defmulti-method read-csound-repl 'i (_ csound-udp input)
-  (csound-repl-interaction-input-message csound-udp (csound-score-trim-time input)))
-
-(defmulti-method read-csound-repl 'f (_ csound-udp input)
-  (csound-repl-interaction-input-message csound-udp input))
-
-(defmulti-method-fallback read-csound-repl (_ csound-udp input)
-  (process-send-string csound-udp input))
-
-;; (defmulti-method read-csound-repl 'table (_ csound-udp args)
-;;   (let ((callback (lambda ()
-;; 		    (csound-repl-interaction--plot
-;; 		     (string-to-number (nth 1 args))))))
-;;     (funcall callback)
-;;     (setq csound-repl-interaction--last-callback callback)))
+(defun read-csound-repl (op csound-udp input)
+  (pcase op
+    ('i (csound-repl-interaction-input-message
+         csound-udp
+         (csound-score-trim-time input)))
+    ('f (csound-repl-interaction-input-message csound-udp input))
+    (_ (process-send-string csound-udp input))))
 
 (defun csound-repl-interaction-evaluate-last-expression ()
   "Evaluate the last expression typed into the repl."

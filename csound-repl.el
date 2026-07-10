@@ -4,7 +4,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "27.1") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -30,10 +30,7 @@
 (require 'csound-opcodes)
 (require 'csound-repl-interaction)
 (require 'csound-util)
-(require 'dash)
 (require 'font-lock)
-(require 'highlight)
-(require 'shut-up)
 
 (defgroup csound-mode-repl nil
   "Csound REPL."
@@ -184,25 +181,24 @@
 (defun csound-repl-last-visited-csd ()
   "This decides which filename is given to repl buffer.
    Returns a list of (path buffer-name buffer)"
-  (shut-up
-    (let ((indx--last-visited 0)
-          (match-p nil)
-          (last-file "not-found")
-          (len (length (buffer-list))))
-      (while (and (< indx--last-visited len)
-                  (not match-p))
-        (if (string-match-p ".csd$" (buffer-name (nth indx--last-visited (buffer-list))))
-            (prog2
-                (setq-local last-file (list
-                                       (file-name-directory
-                                        (buffer-file-name
-                                         (nth indx--last-visited (buffer-list))))
-                                       (buffer-name
-                                        (nth indx--last-visited (buffer-list)))
+  (let ((indx--last-visited 0)
+        (match-p nil)
+        (last-file "not-found")
+        (len (length (buffer-list))))
+    (while (and (< indx--last-visited len)
+                (not match-p))
+      (if (string-match-p ".csd$" (buffer-name (nth indx--last-visited (buffer-list))))
+          (prog2
+              (setq-local last-file (list
+                                     (file-name-directory
+                                      (buffer-file-name
                                        (nth indx--last-visited (buffer-list))))
-                (setq-local match-p t))
-          (setq-local indx--last-visited (1+ indx--last-visited))))
-      last-file)))
+                                     (buffer-name
+                                      (nth indx--last-visited (buffer-list)))
+                                     (nth indx--last-visited (buffer-list))))
+              (setq-local match-p t))
+        (setq-local indx--last-visited (1+ indx--last-visited))))
+    last-file))
 
 
 (defconst csound-repl-prompt
@@ -220,7 +216,7 @@
     (let* ((id (csound-util--generate-random-uuid))
            (buffer-read-only nil)
            (lb (- (line-beginning-position) 5))
-           (input-string (-> input csound-util-chomp))
+           (input-string (csound-util-chomp input))
            (first-chunk (car (split-string input-string))))
       (when (and first-chunk (< 0 (length first-chunk)))
         (read-csound-repl (intern (substring-no-properties first-chunk 0 1))
@@ -299,10 +295,12 @@
   (save-current-buffer
     (set-buffer csound-repl-buffer-name)
     (goto-char (buffer-size))
-    (let ((msg (->> msg
-                    (replace-regexp-in-string "\0\\|\n" "")
-                    (replace-regexp-in-string ">>>" " >>> ")
-                    (replace-regexp-in-string "\\s-+rtevent:\\s-+" "rtevent: ")))
+    (let ((msg
+           (replace-regexp-in-string
+            "\\s-+rtevent:\\s-+" "rtevent: "
+            (replace-regexp-in-string
+             ">>>" " >>> "
+             (replace-regexp-in-string "\0\\|\n" "" msg))))
           (hackfix-p csound-repl--filter-multline-hackfix))
       (when (string-match-p "rtevent:" msg)
         (setq csound-repl--filter-multline-hackfix-rtevent 0
@@ -347,19 +345,12 @@
         t nil)))
 
 (defun csound-repl--flash-region (errorp)
-  (if errorp
-      (hlt-highlight-region
-       csound-repl--expression-start
-       csound-repl--expression-end 'csound-font-lock-eval-flash-error)
-    (hlt-highlight-region
-     csound-repl--expression-start
-     csound-repl--expression-end
-     'csound-font-lock-eval-flash))
-  (run-with-idle-timer 0.15 nil
-                       (lambda ()
-                         (hlt-unhighlight-region
-                          csound-repl--expression-start
-                          csound-repl--expression-end))))
+  (csound-util-flash-region
+   csound-repl--expression-start
+   csound-repl--expression-end
+   (if errorp
+       'csound-font-lock-eval-flash-error
+     'csound-font-lock-eval-flash)))
 
 (defun csound-repl-evaluate-orchestra-region (start end)
   (let ((expression-string (buffer-substring start end)))
@@ -469,10 +460,7 @@
 ;;                 (line-end-position)))
 ;;       (sleep-for 0 50)
 ;;       (let ((table-num (if f-statement-p
-;;         (-> (substring line-str 1)
-;;             (csound-util-chomp)
-;;             (split-string " ")
-;;             first)
+;;         (car (split-string (csound-util-chomp (substring line-str 1)) " "))
 ;;       (save-current-buffer
 ;;         (set-buffer csound-repl-buffer-name)
 ;;         (goto-char (buffer-size))

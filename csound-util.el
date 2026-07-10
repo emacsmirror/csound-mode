@@ -3,7 +3,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "27.1") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,14 @@
 ;;; Code:
 
 (require 'csound-opcodes)
-(require 'dash)
+
+(defun csound-util-flash-region (start end face)
+  "Temporarily highlight the region from START to END using FACE."
+  (let ((overlay (make-overlay start end)))
+    (overlay-put overlay 'face face)
+    (overlay-put overlay 'priority 0)
+    (run-at-time 0.15 nil #'delete-overlay overlay)
+    overlay))
 
 (defun csound-util-chomp (str)
   "Chomp leading and tailing whitespace from STR."
@@ -56,9 +63,9 @@ a commentary"
 (defun csound-util-remove-comment-in-string (string)
   "replaces comments in a string with an empty string and gives back the string without the
 comments"
-  (->> string
-       (replace-regexp-in-string ";.*" "")
-       (replace-regexp-in-string "/\\*\\(.\\|\n\\)*\\*/" "")))
+  (replace-regexp-in-string
+   "/\\*\\(.\\|\n\\)*\\*/" ""
+   (replace-regexp-in-string ";.*" "" string)))
 
 (defun csound-util-recursive-count* (regex string start)
   "counts the appearence of the regex in the given string"

@@ -3,6 +3,7 @@
 ## [master]
 ### Minor Changes
 - `csound-play-flags` and `csound-render-flags` customizeable variables added
+- Remove external runtime dependencies (Dash, Highlight, Multi, and Shut Up)
 
 ## [0.2.1]
 ### Minor Changes
