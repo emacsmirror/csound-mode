@@ -135,58 +135,71 @@
                  (point))))
           (csound-score--align-cols beginning-of-block end-of-block)))))
 
+(defun csound-score--statement-timing (fields)
+  "Return timing metadata for a timed score statement in FIELDS.
+The return value is (TYPE P2-INDEX P3-INDEX), with indexes adjusted
+for both `i 1 0 1' and `i1 0 1' score syntax."
+  (let ((first-field (car fields)))
+    (cond
+     ((member first-field '("a" "d" "f" "i" "q"))
+      (list first-field 2 3))
+     ((and first-field
+           (< 1 (length first-field))
+           (member (substring first-field 0 1) '("a" "d" "f" "i" "q")))
+      (list (substring first-field 0 1) 1 2)))))
+
 (defun csound-score-trim-time (score-string)
-  (let ((trimmed-string (split-string
-                         (substring-no-properties
-                          score-string)
-                         "\n"))
-        (min-p2 0)
-        (closure-list '())
-        (final-str "")
-        ;; (lex-p2-list '())
+  "Move timed statements in SCORE-STRING to start at time zero.
+Both joined and separated score characters are accepted, such as
+`i1 0 1' and `i 1 0 1'.  Resolve `+' and `.' start-time shorthand
+while preserving the original score-character style."
+  (let ((lines (split-string (substring-no-properties score-string) "\n"))
+        (last-p2 nil)
+        (last-p3 0)
         (p2-list '())
-        (last-p3 0))
-    (dolist (event trimmed-string)
-      (let* ((lexical-p-list (split-string
-                              (replace-regexp-in-string
-                               "\\s-+" " " (csound-util-chomp event))
-                              " "))
-             (lex-last-p3 last-p3)
-             (lex-p2-list (cons (if (< 2 (length lexical-p-list))
-                                    (if (string-equal "+" (nth 2 lexical-p-list))
-                                        (if (car p2-list)
-                                            (+ (car p2-list) lex-last-p3)
-                                          last-p3)
-                                      (if (string-equal "." (nth 2 lexical-p-list))
-                                          (if (car p2-list)
-                                              (car p2-list)
-                                            0)
-                                        (string-to-number
-                                         (nth 2 lexical-p-list))))
-                                  0)
-                                p2-list)))
-        (setq p2-list lex-p2-list
-              closure-list (cons
-                            (lambda (min-time)
-                              (setf (nth 2 lexical-p-list)
-                                    (number-to-string
-                                     (- (car lex-p2-list)
-                                        ;;(nth 2 lexical-p-list)
-                                        min-time)))
-                              ;; (message "%s lastp3: %s" lex-p2-list lex-last-p3)
-                              (string-join lexical-p-list " "))
-                            closure-list)
-              last-p3 (if (string-equal "." (nth 3 lexical-p-list))
-                          last-p3
-                        (string-to-number
-                         (nth 3 lexical-p-list))))))
-    ;; (message "p2-list: %s" p2-list)
-    (setq min-p2 (apply #'min p2-list)
-          closure-list (reverse closure-list))
-    (dolist (event-fn closure-list)
-      (setq final-str (concat final-str (funcall event-fn min-p2) "\n")))
-    ;; (message "%s" final-str)
-    final-str))
+        (statements '()))
+    (dolist (line lines)
+      (let* ((fields (split-string
+                      (replace-regexp-in-string
+                       "\\s-+" " " (csound-util-chomp line))
+                      " " t))
+             (timing (csound-score--statement-timing fields))
+             (type (car timing))
+             (p2-index (nth 1 timing))
+             (p3-index (nth 2 timing))
+             (p2-field (and p2-index (nth p2-index fields)))
+             (p2 (and p2-field
+                      (cond
+                       ((string-equal p2-field "+")
+                        (+ (or last-p2 0) last-p3))
+                       ((string-equal p2-field ".")
+                        (or last-p2 0))
+                       (t (string-to-number p2-field))))))
+        (when p2
+          (push p2 p2-list)
+          (setq last-p2 p2))
+        ;; Only an i statement's p3 is a duration.  Other timed statements
+        ;; use p3 differently and must not affect a following `i ... + ...'.
+        (when (and (string-equal type "i")
+                   p3-index
+                   (nth p3-index fields)
+                   (not (string-equal (nth p3-index fields) ".")))
+          (setq last-p3 (string-to-number (nth p3-index fields))))
+        (push (list fields timing p2) statements)))
+    (let ((min-p2 (if p2-list (apply #'min p2-list) 0)))
+      (concat
+       (mapconcat
+        (lambda (statement)
+          (let ((fields (nth 0 statement))
+                (timing (nth 1 statement))
+                (p2 (nth 2 statement)))
+            (when p2
+              (setf (nth (nth 1 timing) fields)
+                    (number-to-string (- p2 min-p2))))
+            (string-join fields " ")))
+        (reverse statements)
+        "\n")
+       "\n"))))
 
 (defvar csound-score--last-start)
 

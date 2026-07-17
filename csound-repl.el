@@ -375,10 +375,6 @@
                                         (line-end-position)))))))))))
 
 
-(defun csound-properly-format-score (string)
-  "Looks at submitted score statement and makes sure any letters are separated by spaces. For example, i1... should become i 1...."
-  (replace-regexp-in-string "\\([a-z]\\)\\([0-9]\\)" "\\1 \\2" string))
-
 (defun csound-repl-evaluate-score-region (start end)
   (let ((expression-string (buffer-substring start end))
         (message-buffer-size (buffer-size
@@ -389,7 +385,7 @@
     (setq-local csound-repl--expression-tmp-buffer-size
                 (buffer-size (get-buffer csound-repl-buffer-name)))
     (process-send-string csound-repl--udp-client-proc
-                         (concat "$" (csound-score-trim-time (csound-properly-format-score expression-string))))
+                         (concat "$" (csound-score-trim-time expression-string)))
     (run-with-idle-timer
      0.02 nil
      (lambda ()

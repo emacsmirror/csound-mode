@@ -52,3 +52,13 @@ jobs:
             --eval "(setq package-user-dir (expand-file-name \".emacs.d/elpa\" default-directory))" \
             --eval "(package-initialize)" \
             --load test/csound-mode-tests.el
+
+      - name: Run score tests
+        shell: bash
+        run: |
+          emacs --batch --no-site-file --no-splash -L . \
+            --eval "(require 'package)" \
+            --eval "(setq package-user-dir (expand-file-name \".emacs.d/elpa\" default-directory))" \
+            --eval "(package-initialize)" \
+            --load test/csound-score-tests.el \
+            --funcall ert-run-tests-batch-and-exit
