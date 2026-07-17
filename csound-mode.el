@@ -3,7 +3,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "25") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -38,14 +38,12 @@
 (require 'csound-skeleton)
 (require 'csound-util)
 (require 'csound-manual-lookup)
-(require 'dash)
-(require 'shut-up)
 
 
 (defgroup csound-mode nil
-  "Tiny functionality enhancements for evaluating sexps."
+  "Major mode for Csound."
   :prefix "csound-mode-"
-  :group 'csound-mode)
+  :group 'languages)
 
 (defvar csound-mode-syntax-table
   (let ((st (make-syntax-table)))
@@ -187,7 +185,8 @@
   (add-hook 'completion-at-point-functions #'csound-util-opcode-completion-at-point nil t)
   ;; (add-hook 'skeleton-end-hook #'csound-font-lock-flush-buffer nil t)
   (font-lock-add-keywords nil csound-font-lock-list t)
-  (shut-up
+  (let ((inhibit-message t)
+        (message-log-max nil))
     (with-silent-modifications
       (csound-font-lock-flush-buffer)
       (csound-font-lock--flush-score))))

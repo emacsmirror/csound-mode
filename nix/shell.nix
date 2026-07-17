@@ -9,19 +9,11 @@ let init-el = pkgs.writeText "init.el" ''
     '';
     emacs25WithPackages = (pkgs.emacsPackagesGen pkgs.emacs25).emacsWithPackages;
     emacs25 = emacs25WithPackages (epkgs: (with epkgs.melpaPackages; [
-      shut-up
       test-simple
-      multi
-      dash
-      highlight
     ]));
     emacs26WithPackages = (pkgs.emacsPackagesGen pkgs.emacs26).emacsWithPackages;
     emacs26 = emacs26WithPackages (epkgs: (with epkgs.melpaPackages; [
-      shut-up
       test-simple
-      multi
-      dash
-      highlight
     ]));
 in stdenv.mkDerivation {
   name = "csound-mode-test";

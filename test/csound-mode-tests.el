@@ -80,6 +80,12 @@ i 1 0 2 1000
   (with-current-buffer (buffer-name)
     (assert-nil (get-text-property (point) 'face))))
 
+(test-with-temp-buffer "declare quibble_zorp(narf:BlipToken):WizzleResult"
+  (font-lock-ensure)
+  (goto-char (point-min))
+  (with-current-buffer (buffer-name)
+    (assert-equal 'font-lock-builtin-face (get-text-property (point) 'face))))
+
 (defvar example-udo-1 ;; From https://github.com/kunstmusik/libsyi/blob/master/adsr140.udo
   "; Gated, Retriggerable Envelope Generator UDO (adsr140)
 ; Based on design of Doepfer A-140 Envelope Generator Module
@@ -290,5 +296,103 @@ endop")
   (assert-string-equal
    example-udo-1-expected
    (buffer-substring-no-properties (point-min) (point-max))))
+
+(defvar example-multiline-if-1
+  "opcode gateMixer(ksig:k, ithresh:i):i
+ires = 0
+if (ksig > ithresh || \\
+ksig == 0 || \\
+ksig < -ithresh || \\
+ithresh <= 0 || \\
+ksig >= 1 || \\
+ksig <= -1) \\
+then
+ires = 1
+endif
+xout(ires)
+endop")
+
+(defvar example-multiline-if-1-expected
+  "opcode gateMixer(ksig:k, ithresh:i):i
+  ires = 0
+  if (ksig > ithresh || \\
+      ksig == 0 || \\
+      ksig < -ithresh || \\
+      ithresh <= 0 || \\
+      ksig >= 1 || \\
+      ksig <= -1) \\
+  then
+    ires = 1
+  endif
+  xout(ires)
+endop")
+
+(note "Test indentation of bool closing tokens after multiline conditions")
+
+(test-with-temp-buffer example-multiline-if-1
+  (goto-char (point-min))
+  (indent-region (point-min) (point-max))
+  (assert-string-equal
+   example-multiline-if-1-expected
+   (buffer-substring-no-properties (point-min) (point-max)))
+  (goto-char (point-max))
+  (search-backward "endif")
+  (csound-indentation-line)
+  (assert-string-equal
+   "  endif"
+   (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+  (search-backward "then")
+  (csound-indentation-line)
+  (assert-string-equal
+   "  then"
+   (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+
+(note "Test indentation keeps point after code")
+
+(test-with-temp-buffer "instr TEST
+  prints \"Testing basic formatting behavior\\n\"
+  endin"
+  (goto-char (point-max))
+  (csound-indentation-line)
+  (assert-string-equal
+   "endin"
+   (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+  (assert-equal
+   5
+   (current-column)))
+
+(note "Test manual lookup URLs")
+
+(let ((csound-manual-url "file:///tmp/csound-manual"))
+  (assert-string-equal
+   "file:///tmp/csound-manual/index.html"
+   (csound-manual--file-name-concat csound-manual-url "index.html")))
+
+(let ((csound-manual-url "file:///tmp/csound-manual/"))
+  (assert-string-equal
+   "file:///tmp/csound-manual/ScoreGenRef.html"
+   (csound-manual--file-name-concat csound-manual-url "ScoreGenRef.html")))
+
+(let ((csound-manual-url "file:///tmp/csound-manual")
+      (browse-url-browser-function
+       (lambda (url &rest _args)
+         (setq csound-mode-test--browse-url url)))
+      (csound-mode-test--browse-url nil))
+  (csound-browse-manual)
+  (assert-string-equal
+   "file:///tmp/csound-manual/index.html"
+   csound-mode-test--browse-url))
+
+(test-with-temp-buffer "f 1 0 1024 10 1"
+  (let ((csound-manual-url "file:///tmp/csound-manual")
+        (browse-url-browser-function
+         (lambda (url &rest _args)
+           (setq csound-mode-test--browse-url url)))
+        (csound-mode-test--browse-url nil))
+    (goto-char 3)
+    (csound-gen-manual-lookup)
+    (assert-string-equal
+     "file:///tmp/csound-manual/GEN01.html"
+     csound-mode-test--browse-url)))
 
 (end-tests)

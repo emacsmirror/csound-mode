@@ -4,7 +4,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "25") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -72,9 +72,7 @@ line, otherwise nil"
   (and
    (save-excursion
      (beginning-of-line)
-     ;; (looking-at-p "[[:blank:]]*$") ; is this a mistake? 
-     (search-forward-regexp "[[:blank:]]*$" (csound-util-line-boundry)
-			    t 1))   ; did you mean this instead?
+     (looking-at-p "[[:blank:]]*$"))
    ;; don't account for line continuation token being empty
    (not (and (csound-indentation--previous-line-breaks-p)
              (csound-indentation--current-line-breaks-p)))))
@@ -140,7 +138,7 @@ otherwise 0"
   (save-excursion
     (beginning-of-line 1)
     (if (and (search-forward-regexp
-	      "\\<\\(if\\|while\\|else\\|elseif\\|until\\)\\>"
+	      "\\<\\(if\\|while\\|else\\|elseif\\|until\\|then\\)\\>"
 	      (csound-util-line-boundry) t 1)
  	     ;; if in mix with gotos
 	     ;; dont have endif therefore
@@ -159,6 +157,14 @@ otherwise 0"
 	 "\\<\\(endif\\|od\\|else\\|elseif\\)\\>"
 	 (csound-util-line-boundry) t 1)
 	1 0)))
+
+(defun csound-indentation--current-line-aligns-bool-p ()
+  "Return non-nil when the current line starts a boolean control token."
+  (save-excursion
+    (beginning-of-line)
+    (search-forward-regexp
+     "^\\s-*\\(then\\|endif\\|od\\|else\\|elseif\\)\\>"
+     (line-end-position) t)))
 
 ;;; not needed
 ;; (defun csound-indentation-count-goto-if-mix
@@ -327,8 +333,9 @@ otherwise 0"
 	  (if (csound-indentation--pointer-inside-paren-p)
 	      1 0))
 	 (unbalanced-parens-or-line-break
-	  (if (or (eq 1 unbalanced-parens) (eq 1 previous-line-break-adjust))
-					      1 0))
+	  (if (and (not (csound-indentation--current-line-aligns-bool-p))
+	           (or (eq 1 unbalanced-parens) (eq 1 previous-line-break-adjust)))
+	      1 0))
 	 (tab-count (max 1 (1+ (- (+ count-if-statements
                                      after-goto-statement
                                      count-multiline-string-open
@@ -374,7 +381,7 @@ otherwise 0"
 
 (defun csound-indentation--do-indent ()
   (let ((score-p (or (save-excursion (search-backward "<CsScore" nil t 1))
-		     (string-match-p ".sco$" (buffer-name (current-buffer))))))
+		     (string-match "\\.sco\\'" (buffer-name (current-buffer))))))
     (cond
      (score-p (if csound-indentation-aggressive-score
 		  (csound-score-align-block)
@@ -391,7 +398,10 @@ otherwise 0"
   (if (or (csound-indentation--current-line-empty-p)
           (csound-indentation--cursor-behind-indentation-point-p))
       (csound-indentation--do-indent)
-    (save-excursion (csound-indentation--do-indent))))
+    (let ((point-from-end (- (point-max) (point))))
+      (save-excursion (csound-indentation--do-indent))
+      (when (> (- (point-max) point-from-end) (point))
+        (goto-char (- (point-max) point-from-end))))))
 
 (provide 'csound-indentation)
 

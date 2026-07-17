@@ -1,6 +1,6 @@
 [![License GPL 3][badge-license]][copying]
 [![MELPA Stable](https://stable.melpa.org/packages/csound-mode-badge.svg)](https://stable.melpa.org/#/csound-mode)
-[![Melpa Status](http://melpa.milkbox.net/packages/csound-mode-badge.svg)](http://melpa.milkbox.net/#/csound-mode)
+[![MELPA](https://melpa.org/packages/csound-mode-badge.svg)](https://melpa.org/#/csound-mode)
 
 
 # csound-mode
@@ -32,7 +32,7 @@ and add it manually to load-path like shown here:
 
 ## Requirements
 
-- Emacs 25+
+- Emacs 27.1+
 - Csound 6.10+ (any release/compilation after 1. December 2017)
 
 ## Usage
@@ -98,7 +98,7 @@ The tests depend on the package _test-simple.el_.
 Run the tests locally from the command line
 
 ```
-emacs --batch --no-site-file --no-splash --load test/csound-mode-tests.el
+emacs --batch --no-site-file --no-splash -L . --load test/csound-mode-tests.el
 ```
 
 

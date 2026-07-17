@@ -4,7 +4,7 @@
 
 ;; Author: Hlöðver Sigurðsson <hlolli@gmail.com>
 ;; Version: 0.2.9
-;; Package-Requires: ((emacs "25") (shut-up "0.3.2") (multi "2.0.1") (dash "2.16.0") (highlight "0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/hlolli/csound-mode
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -30,24 +30,26 @@
 (require 'csound-font-lock)
 (require 'csound-util)
 (require 'font-lock)
-(require 'dash)
-(require 'highlight)
 
 (defun csound-score--align-cols (start end)
   (save-excursion
     (let ((line-end (line-number-at-pos end))
           (max-matrix '()))
       ;; Create matrix of max lengths
-      (let ((statements (-> (buffer-substring start end)
-                            (substring-no-properties)
-                            (split-string "\n"))))
+      (let ((statements
+             (split-string
+              (substring-no-properties (buffer-substring start end))
+              "\n")))
         (dolist (stm statements)
           ;; Remove comments and extra whitespaces
-          (let* ((stm* (->> (replace-regexp-in-string "\\(;\\|//\\).*" "" stm)
-                            csound-util-chomp
-                            ;; replace space by _ in [expression]
-                            (replace-regexp-in-string "\\[[^]]*]" #'(lambda (x) (replace-regexp-in-string "\\s-" "_" x)))
-                            (replace-regexp-in-string "\\s-+" " ")))
+          (let* ((stm*
+                  (replace-regexp-in-string
+                   "\\s-+" " "
+                   (replace-regexp-in-string
+                    "\\[[^]]*]"
+                    (lambda (x) (replace-regexp-in-string "\\s-" "_" x))
+                    (csound-util-chomp
+                     (replace-regexp-in-string "\\(;\\|//\\).*" "" stm)))))
                  (param-list (split-string stm* " "))
                  ;; (param-num (length param-list))
                  (max-matrix-len (length max-matrix))
@@ -191,15 +193,10 @@
 (defvar csound-score--last-end)
 
 (defun csound-score--flash ()
-  (hlt-highlight-region
+  (csound-util-flash-region
    csound-score--last-start
    csound-score--last-end
-   'font-lock-string-face)
-  (run-with-idle-timer
-   0.15
-   nil
-   (lambda ()
-     (hlt-unhighlight-region csound-score--last-start csound-score--last-end))))
+   'font-lock-string-face))
 
 (defun csound-score-find-instr-def ()
   "For a score statement,
