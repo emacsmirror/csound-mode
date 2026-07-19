@@ -32,7 +32,18 @@ jobs:
         with:
           version: ${{ matrix.emacs-version }}
 
-      - name: Install package dependencies
+      - name: Verify declared runtime dependencies
+        shell: bash
+        run: |
+          package_dir="$(mktemp -d)"
+          cp csound-*.el "$package_dir/"
+          emacs -Q --batch -L "$package_dir" \
+            --funcall batch-byte-compile "$package_dir"/*.el
+          emacs -Q --batch -L "$package_dir" \
+            --load "$PWD/test/csound-package-tests.el" \
+            --funcall ert-run-tests-batch-and-exit
+
+      - name: Install test dependencies
         shell: bash
         run: |
           emacs --batch --no-site-file --no-splash \
@@ -41,7 +52,7 @@ jobs:
             --eval "(setq package-archives '((\"gnu\" . \"https://elpa.gnu.org/packages/\") (\"melpa\" . \"https://melpa.org/packages/\")))" \
             --eval "(package-initialize)" \
             --eval "(package-refresh-contents)" \
-            --eval "(dolist (pkg '(shut-up multi dash highlight test-simple)) (unless (package-installed-p pkg) (package-install pkg)))"
+            --eval "(dolist (pkg '(test-simple)) (unless (package-installed-p pkg) (package-install pkg)))"
 
       - name: Run tests
         shell: bash

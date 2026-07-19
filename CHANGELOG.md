@@ -1,9 +1,21 @@
 # Changelog
 
-## [master]
+## [0.2.9] - 2026-07-19
+
+### Added
+- Manual and GEN lookup and browsing commands
+- Csound statement completion at point
+- `csound-abort-compilation` command
+- CI coverage for Emacs 27.2 through 30.2 and clean package smoke tests
+
 ### Minor Changes
-- `csound-play-flags` and `csound-render-flags` customizeable variables added
-- Remove external runtime dependencies (Dash, Highlight, Multi, and Shut Up)
+- Added customizable `csound-play-flags` and `csound-render-flags`
+- Removed external runtime dependencies (Dash, Highlight, Multi, and Shut Up)
+- Raised the minimum supported Emacs version to 27.1
+- Improved score alignment and support for compact score statements
+- Improved indentation and font locking, including `declare` tokens
+- Fixed playback and rendering of paths containing spaces
+- Fixed render defaults and output format detection
 
 ## [0.2.1]
 ### Minor Changes

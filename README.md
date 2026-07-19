@@ -21,7 +21,7 @@ You can install `csound-mode` from `MELPA` using the following command:
 
 <kbd>M-x package-install [RET] csound-mode [RET]</kbd>
 
-Alternatively, [download latest release.](https://github.com/hlolli/csound-mode/releases/download/v9.2.0/csound-mode-0.2.0.zip)
+Alternatively, [download the 0.2.9 source archive.](https://github.com/hlolli/csound-mode/archive/refs/tags/0.2.9.zip)
 and add it manually to load-path like shown here:
 
 ```el

@@ -30,6 +30,7 @@
 
 (require 'font-lock)
 (require 'cl-lib)
+(require 'compile)
 (require 'csound-eldoc)
 (require 'csound-font-lock)
 (require 'csound-repl)
@@ -115,24 +116,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defun csound-mode--buffer-base-name ()
+  "Return the base name of the current buffer's file or buffer name."
+  (file-name-base (or buffer-file-name (buffer-name))))
+
 (defun csound-render (bit filename)
   "Render csound to file."
   (interactive
    (list
     (read-string "File bit-value(16/24/32), defaults to 16: ")
-    (read-string (format "Filename, defaults to %s.wav: " (file-name-base)))))
+    (read-string (format "Filename, defaults to %s.wav: "
+                         (csound-mode--buffer-base-name)))))
   ;;(compile (format "csound -o %s" (buffer-file-name)))
   ;; (message "var1: %s var2: %s" var1 var2)
-  (let ((filename (if (string= "" filename)
-                      (concat (file-name-base) ".wav")
-                    filename)))
+  (let* ((filename (if (string= filename "")
+                       (concat (csound-mode--buffer-base-name) ".wav")
+                     filename))
+         (file-format (or (file-name-extension filename) "wav")))
     (if csound-repl-start-server-p
         (compile (format "csound %s %s -o %s --format=%s %s"
                          csound-render-flags
                          (shell-quote-argument (buffer-file-name))
                          (shell-quote-argument filename)
-                         (-> (split-string filename "\\.")
-                             cl-rest cl-first)
+                         file-format
                          (cl-case (string-to-number bit)
                            (32 "-f")
                            (24 "-3")
